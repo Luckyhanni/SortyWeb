@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SortyWeb.Models;
+using SortyWebApp.Models;
 using System.Collections.Generic;
 
-namespace SortyWeb.Data
+namespace SortyWebApp.Data
 {
     public class AppDbContext : DbContext
     {

@@ -1,10 +1,10 @@
 ﻿using FuzzySharp;
 using Microsoft.EntityFrameworkCore;
-using SortyWeb.Data;
-using SortyWeb.Models;
+using SortyWebApp.Data;
+using SortyWebApp.Models;
 using System.Text.RegularExpressions;
 
-namespace SortyWeb.Services
+namespace SortyWebApp.Services
 {
     public class OrderService
     {

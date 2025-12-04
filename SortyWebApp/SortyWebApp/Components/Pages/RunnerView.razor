@@ -1,0 +1,119 @@
+﻿@page "/runner"
+@inject OrderService OrderService
+@inject DiscordService DiscordService
+@rendermode InteractiveServer
+
+<div class="container-fluid mt-3" style="max-width: 800px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0"><i class="bi bi-search"></i> Abholung</h2>
+        <span class="badge bg-danger rounded-pill fs-6">Live</span>
+    </div>
+
+    <div class="sticky-top bg-white py-3" style="z-index: 100;">
+        <div class="input-group input-group-lg shadow-lg" style="border-radius: 50px; overflow: hidden;">
+            <span class="input-group-text border-0 bg-light ps-4"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-0 bg-light" placeholder="Namen tippen..."
+                   style="height: 60px; font-size: 1.3rem;"
+                   @bind="searchTerm" @bind:event="oninput" @onkeyup="Search" />
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="btn btn-light border-0 pe-4" @onclick="ClearSearch"><i class="bi bi-x-circle-fill text-muted"></i></button>
+            }
+        </div>
+    </div>
+
+    <div class="row mt-2 g-3">
+        @if (searchResults.Any())
+        {
+            @foreach (var result in searchResults)
+            {
+                var item = result.Order;
+                var lagerColor = GetLagerColor(item.Ort); // Hilfsfunktion für Farben
+
+                <div class="col-12 animate__animated animate__fadeInUp">
+                    <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                        <div class="card-body p-0 d-flex">
+                            <div style="width: 15px; background-color: @lagerColor;"></div>
+
+                            <div class="p-3 flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <h3 class="fw-bold m-0 text-dark">@item.Name</h3>
+                                    <span class="badge bg-light text-dark border">@item.Price.ToString("C")</span>
+                                </div>
+                                <div class="text-muted mb-2">@item.Vorname</div>
+
+                                <div class="d-flex align-items-center mt-2">
+                                    <span class="badge rounded-pill me-2 px-3 py-2" style="background-color: @lagerColor; color: white;">
+                                        @item.Ort
+                                    </span>
+                                    <span class="fs-4 fw-bold ms-auto text-end">
+                                        Kiste <span style="font-size: 1.8rem; color: @lagerColor;">#@item.ChestNumber</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-light border-start rounded-0" style="width: 100px; background-color: #f8f9fa;"
+                                    @onclick="() => Pickup(item)">
+                                <div class="text-success text-center">
+                                    <i class="bi bi-box-seam fs-1"></i><br>
+                                    <small class="fw-bold">HOLEN</small>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center mt-5 text-muted opacity-50">
+                <i class="bi bi-arrow-up-circle fs-1"></i>
+                <p class="mt-2">Suche starten...</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string searchTerm = "";
+    private List<(Order Order, int Score)> searchResults = new();
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            searchResults.Clear();
+            return;
+        }
+        searchResults = await OrderService.SearchOrdersAsync(searchTerm);
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = "";
+        searchResults.Clear();
+    }
+
+    private async Task Pickup(Order order)
+    {
+        await OrderService.PickupOrderAsync(order.Id);
+        searchResults.RemoveAll(x => x.Order.Id == order.Id);
+        _ = DiscordService.SendPickupNotificationAsync(
+            order.Name, order.Vorname, order.ChestNumber, order.Ort, order.Price
+        );
+    }
+
+    // Farben für Lager zuweisen (Visuelle Hilfe für Läufer)
+    private string GetLagerColor(string ort)
+    {
+        return ort switch
+        {
+            "Lager 1" => "#0d6efd", // Blau
+            "Lager 2" => "#dc3545", // Rot
+            "Lager 3" => "#198754", // Grün
+            "Lager 4" => "#fd7e14", // Orange
+            _ => "#6c757d" // Grau
+        };
+    }
+}

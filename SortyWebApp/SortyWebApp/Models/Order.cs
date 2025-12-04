@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SortyWeb.Models
+namespace SortyWebApp.Models
 {
     public class Order
     {

@@ -1,7 +1,7 @@
 ﻿using RestSharp;
 using Microsoft.Extensions.Configuration;
 
-namespace SortyWeb.Services
+namespace SortyWebApp.Services
 {
     public class DiscordService
     {
