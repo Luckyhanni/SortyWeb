@@ -3,74 +3,82 @@
 @inject DiscordService DiscordService
 @rendermode InteractiveServer
 
-<div class="container-fluid mt-3" style="max-width: 800px;">
+<div class="container-fluid mt-3 px-3" style="max-width: 850px;">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold m-0"><i class="bi bi-search"></i> Abholung</h2>
-        <span class="badge bg-danger rounded-pill fs-6">Live</span>
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-sm-4 col-md-3">
+            <div class="card border-0 shadow-sm p-2 d-flex flex-column align-items-center justify-content-center bg-dark text-white h-100" style="min-height: 70px;">
+                <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Gesamt</small>
+                <span class="fs-4 fw-bold lh-1">@stats.Values.Sum()</span>
+            </div>
+        </div>
+
+        @foreach (var wh in warehouses)
+        {
+            var count = stats.ContainsKey(wh.Name) ? stats[wh.Name] : 0;
+            <div class="col-6 col-sm-4 col-md-3">
+                <div class="card border-0 shadow-sm p-2 d-flex flex-column align-items-center justify-content-center h-100"
+                     style="background-color: white; min-height: 70px; border-left: 4px solid @wh.ColorHex !important;">
+                    <span class="text-muted fw-bold text-truncate w-100 text-center" style="font-size: 0.8rem;">@wh.Name</span>
+                    <span class="fs-4 fw-bold lh-1 text-dark">@count</span>
+                </div>
+            </div>
+        }
     </div>
 
-    <div class="sticky-top bg-white py-3" style="z-index: 100;">
-        <div class="input-group input-group-lg shadow-lg" style="border-radius: 50px; overflow: hidden;">
-            <span class="input-group-text border-0 bg-light ps-4"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" class="form-control border-0 bg-light" placeholder="Namen tippen..."
-                   style="height: 60px; font-size: 1.3rem;"
+    <div class="sticky-top pt-1 pb-3" style="background-color: var(--apple-bg); z-index: 90; margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px;">
+        <div class="input-group input-group-lg shadow-sm" style="border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); background-color: white;">
+            <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search text-secondary"></i></span>
+            <input type="text" class="form-control border-0 bg-transparent" placeholder="Suchen..."
+                   style="height: 55px; font-size: 1.2rem;"
                    @bind="searchTerm" @bind:event="oninput" @onkeyup="Search" />
             @if (!string.IsNullOrEmpty(searchTerm))
             {
-                <button class="btn btn-light border-0 pe-4" @onclick="ClearSearch"><i class="bi bi-x-circle-fill text-muted"></i></button>
+                <button class="btn border-0 pe-3" @onclick="ClearSearch"><i class="bi bi-x-circle-fill text-muted fs-5"></i></button>
             }
         </div>
     </div>
 
-    <div class="row mt-2 g-3">
+    <div class="d-flex flex-column gap-3 pb-5">
         @if (searchResults.Any())
         {
             @foreach (var result in searchResults)
             {
                 var item = result.Order;
-                var lagerColor = GetLagerColor(item.Ort); // Hilfsfunktion für Farben
+                var wh = warehouses.FirstOrDefault(w => w.Name == item.Ort);
+                var color = wh?.ColorHex ?? "#999";
 
-                <div class="col-12 animate__animated animate__fadeInUp">
-                    <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
-                        <div class="card-body p-0 d-flex">
-                            <div style="width: 15px; background-color: @lagerColor;"></div>
+                <div class="card border-0 shadow-sm overflow-hidden animate__animated animate__fadeInUp" style="border-radius: 18px;">
+                    <div class="d-flex align-items-stretch">
+                        <div style="width: 10px; background-color: @color;"></div>
 
-                            <div class="p-3 flex-grow-1">
-                                <div class="d-flex justify-content-between">
-                                    <h3 class="fw-bold m-0 text-dark">@item.Name</h3>
-                                    <span class="badge bg-light text-dark border">@item.Price.ToString("C")</span>
-                                </div>
-                                <div class="text-muted mb-2">@item.Vorname</div>
-
-                                <div class="d-flex align-items-center mt-2">
-                                    <span class="badge rounded-pill me-2 px-3 py-2" style="background-color: @lagerColor; color: white;">
-                                        @item.Ort
-                                    </span>
-                                    <span class="fs-4 fw-bold ms-auto text-end">
-                                        Kiste <span style="font-size: 1.8rem; color: @lagerColor;">#@item.ChestNumber</span>
-                                    </span>
-                                </div>
+                        <div class="p-3 flex-grow-1 d-flex flex-column justify-content-center">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h4 class="fw-bold m-0 text-dark text-truncate">@item.Name</h4>
+                                <span class="badge bg-light text-dark border ms-2">@item.Price.ToString("0.##")€</span>
                             </div>
+                            <div class="text-muted fw-medium mb-2 small text-uppercase">@item.Vorname</div>
 
-                            <button class="btn btn-light border-start rounded-0" style="width: 100px; background-color: #f8f9fa;"
-                                    @onclick="() => Pickup(item)">
-                                <div class="text-success text-center">
-                                    <i class="bi bi-box-seam fs-1"></i><br>
-                                    <small class="fw-bold">HOLEN</small>
+                            <div class="d-flex align-items-center">
+                                <div class="badge rounded-pill me-2 px-2" style="background-color: @color; font-weight: 500; font-size: 0.8rem;">
+                                    @item.Ort
                                 </div>
-                            </button>
+                                <span class="ms-auto text-end" style="color: #333; line-height: 1;">
+                                    <small class="text-muted text-uppercase" style="font-size: 0.6rem; display: block;">Kiste</small>
+                                    <span class="fw-bold" style="font-size: 1.5rem;">#@item.ChestNumber</span>
+                                </span>
+                            </div>
                         </div>
+
+                        <button class="btn btn-light rounded-0 border-start d-flex flex-column justify-content-center align-items-center px-3"
+                                style="background-color: #fafafa;"
+                                @onclick="() => Pickup(item)">
+                            <i class="bi bi-box-seam fs-2 text-success mb-1"></i>
+                            <span class="fw-bold text-success" style="font-size: 0.65rem; letter-spacing: 0.5px;">HOLEN</span>
+                        </button>
                     </div>
                 </div>
             }
-        }
-        else
-        {
-            <div class="text-center mt-5 text-muted opacity-50">
-                <i class="bi bi-arrow-up-circle fs-1"></i>
-                <p class="mt-2">Suche starten...</p>
-            </div>
         }
     </div>
 </div>
@@ -78,6 +86,19 @@
 @code {
     private string searchTerm = "";
     private List<(Order Order, int Score)> searchResults = new();
+    private List<Warehouse> warehouses = new();
+    private Dictionary<string, int> stats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        warehouses = await OrderService.GetWarehousesAsync();
+        stats = await OrderService.GetFullStatsAsync();
+    }
 
     private async Task Search()
     {
@@ -99,21 +120,11 @@
     {
         await OrderService.PickupOrderAsync(order.Id);
         searchResults.RemoveAll(x => x.Order.Id == order.Id);
+
+        await LoadData(); // Stats updaten
+
         _ = DiscordService.SendPickupNotificationAsync(
             order.Name, order.Vorname, order.ChestNumber, order.Ort, order.Price
         );
-    }
-
-    // Farben für Lager zuweisen (Visuelle Hilfe für Läufer)
-    private string GetLagerColor(string ort)
-    {
-        return ort switch
-        {
-            "Lager 1" => "#0d6efd", // Blau
-            "Lager 2" => "#dc3545", // Rot
-            "Lager 3" => "#198754", // Grün
-            "Lager 4" => "#fd7e14", // Orange
-            _ => "#6c757d" // Grau
-        };
     }
 }

@@ -1,0 +1,73 @@
+﻿@page "/settings"
+@inject OrderService OrderService
+@rendermode InteractiveServer
+
+<div class="container mt-4" style="max-width: 800px;">
+    <h2 class="fw-bold mb-4">Einstellungen / Lagerverwaltung</h2>
+
+    <div class="card border-0 p-4 mb-4">
+        <h4 class="mb-3">Neues Lager anlegen</h4>
+        <div class="row g-2 align-items-end">
+            <div class="col-7">
+                <label class="small text-muted fw-bold">Name</label>
+                <input type="text" class="form-control" @bind="newName" placeholder="z.B. Kühlhaus" />
+            </div>
+            <div class="col-2">
+                <label class="small text-muted fw-bold">Farbe</label>
+                <input type="color" class="form-control form-control-color w-100" @bind="newColor" title="Farbe wählen" />
+            </div>
+            <div class="col-3">
+                <button class="btn btn-primary w-100" @onclick="AddWarehouse">Hinzufügen</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        @foreach (var wh in warehouses)
+        {
+            <div class="col-md-6">
+                <div class="card border-0 p-3 d-flex flex-row align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 24px; height: 24px; background-color: @wh.ColorHex; border-radius: 50%;"></div>
+                        <span class="fw-bold fs-5">@wh.Name</span>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm rounded-circle" @onclick="() => Delete(wh.Id)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Warehouse> warehouses = new();
+    private string newName = "";
+    private string newColor = "#007AFF";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        warehouses = await OrderService.GetWarehousesAsync();
+    }
+
+    private async Task AddWarehouse()
+    {
+        if (!string.IsNullOrWhiteSpace(newName))
+        {
+            await OrderService.AddWarehouseAsync(newName, newColor);
+            newName = "";
+            await LoadData();
+        }
+    }
+
+    private async Task Delete(int id)
+    {
+        await OrderService.DeleteWarehouseAsync(id);
+        await LoadData();
+    }
+}

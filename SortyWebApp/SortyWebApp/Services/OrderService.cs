@@ -15,6 +15,7 @@ namespace SortyWebApp.Services
             _dbContextFactory = dbContextFactory;
         }
 
+        // --- ORDER LOGIC ---
         public async Task AddOrderAsync(Order order)
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -43,18 +44,6 @@ namespace SortyWebApp.Services
             }
         }
 
-        public async Task<Dictionary<string, int>> GetStatsAsync()
-        {
-            using var context = _dbContextFactory.CreateDbContext();
-            var stats = await context.Orders
-                .Where(o => !o.IsPickedUp)
-                .GroupBy(o => o.Ort)
-                .Select(g => new { Ort = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(k => k.Ort, v => v.Count);
-
-            return stats;
-        }
-
         public async Task<List<(Order Order, int Score)>> SearchOrdersAsync(string inputName)
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -77,6 +66,50 @@ namespace SortyWebApp.Services
             .ToList();
 
             return results;
+        }
+
+        // --- WAREHOUSE LOGIC (NEU) ---
+        public async Task<List<Warehouse>> GetWarehousesAsync()
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            return await context.Warehouses.ToListAsync();
+        }
+
+        public async Task AddWarehouseAsync(string name, string color)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            context.Warehouses.Add(new Warehouse { Name = name, ColorHex = color });
+            await context.SaveChangesAsync();
+        }
+
+        public async Task DeleteWarehouseAsync(int id)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            var wh = await context.Warehouses.FindAsync(id);
+            if (wh != null)
+            {
+                context.Warehouses.Remove(wh);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // Statistik: Holt ALLE Lager und zählt die Bestellungen (auch 0 wenn leer)
+        public async Task<Dictionary<string, int>> GetFullStatsAsync()
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+
+            var warehouses = await context.Warehouses.ToListAsync();
+            var activeOrders = await context.Orders.Where(o => !o.IsPickedUp).ToListAsync();
+
+            var stats = new Dictionary<string, int>();
+
+            foreach (var wh in warehouses)
+            {
+                int count = activeOrders.Count(o => o.Ort == wh.Name);
+                stats[wh.Name] = count;
+            }
+
+            return stats;
         }
 
         private static string GenerateSoundex(string input)
