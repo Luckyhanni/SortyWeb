@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using SortyWebApp.Components;
+using SortyWeb.Data;
+using SortyWeb.Services;
 using SortyWebApp.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,18 +10,32 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// 1. Datenbank registrieren (SQLite)
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 2. Unsere Services registrieren
+builder.Services.AddSingleton<DiscordService>();
+builder.Services.AddScoped<OrderService>();
+
 var app = builder.Build();
+
+// Automatisch DB erstellen beim Start
+using (var scope = app.Services.CreateScope())
+{
+    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    using var db = dbFactory.CreateDbContext();
+    db.Database.EnsureCreated();
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.UseAntiforgery();
 

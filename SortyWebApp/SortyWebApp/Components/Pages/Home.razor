@@ -1,7 +1,176 @@
 ﻿@page "/"
+@using SortyWeb.Models
+@using SortyWeb.Services
+@inject OrderService OrderService
+@inject DiscordService DiscordService
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Sorty Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4 p-4" style="background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;">
+            <h3 class="mb-3">📦 Neue Bestellung</h3>
+            <EditForm Model="@newOrder" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
 
-Welcome to your new app.
+                <div class="mb-3">
+                    <label class="form-label">Nachname</label>
+                    <InputText @bind-Value="newOrder.Name" class="form-control form-control-lg fw-bold" placeholder="Müller" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Vorname</label>
+                    <InputText @bind-Value="newOrder.Vorname" class="form-control" />
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Ort</label>
+                        <InputSelect @bind-Value="newOrder.Ort" class="form-select form-select-lg">
+                            <option value="">Wählen...</option>
+                            <option value="Lager 1">Lager 1</option>
+                            <option value="Lager 2">Lager 2</option>
+                            <option value="Lager 3">Lager 3</option>
+                            <option value="Lager 4">Lager 4</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Kiste #</label>
+                        <InputNumber @bind-Value="newOrder.ChestNumber" class="form-control form-control-lg" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Preis (€)</label>
+                    <InputNumber @bind-Value="newOrder.Price" class="form-control form-control-lg" />
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold">SPEICHERN</button>
+            </EditForm>
+
+            <hr class="my-4" />
+
+            <div>
+                <h5 class="text-muted">📊 Lager Status</h5>
+                <ul class="list-group shadow-sm">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Lager 1 <span class="badge bg-primary rounded-pill">@GetStat("Lager 1")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Lager 2 <span class="badge bg-primary rounded-pill">@GetStat("Lager 2")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Lager 3 <span class="badge bg-primary rounded-pill">@GetStat("Lager 3")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-light">
+                        <strong>Gesamt</strong> <span class="badge bg-dark rounded-pill">@stats.Values.Sum()</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="input-group input-group-lg mb-4 shadow-sm">
+                <span class="input-group-text bg-white border-end-0">🔍</span>
+                <input type="text" class="form-control border-start-0" placeholder="Kunden suchen (Tippen zum Starten)..."
+                       @bind="searchTerm" @bind:event="oninput" @onkeyup="Search" />
+            </div>
+
+            @if (searchResults.Any())
+            {
+                <div class="row">
+                    @foreach (var result in searchResults)
+                    {
+                        var item = result.Order;
+                        <div class="col-12 mb-3">
+                            <div class="card shadow-sm border-0 border-start border-5 border-success">
+                                <div class="card-body d-flex justify-content-between align-items-center p-4">
+                                    <div>
+                                        <h2 class="card-title m-0 fw-bold">@item.Name</h2>
+                                        <h4 class="text-muted mb-1">@item.Vorname</h4>
+                                        <div class="fs-4 mt-2">
+                                            <span class="badge bg-secondary">@item.Ort</span>
+                                            <span class="ms-2">Kiste: <strong class="text-danger fs-3">@item.ChestNumber</strong></span>
+                                        </div>
+                                        <div class="text-muted mt-2">Preis: @item.Price.ToString("C")</div>
+                                    </div>
+                                    <button class="btn btn-success btn-lg py-3 px-4 shadow"
+                                            @onclick="() => Pickup(item)">
+                                        ABHOLEN <br> 📦
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    <div class="alert alert-warning text-center">Nichts gefunden.</div>
+                }
+                else
+                {
+                    <div class="text-center text-muted mt-5">
+                        <p class="fs-4">Warte auf Eingabe...</p>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private Order newOrder = new Order();
+    private string searchTerm = "";
+    private List<(Order Order, int Score)> searchResults = new();
+    private Dictionary<string, int> stats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+    }
+
+    private async Task HandleSubmit()
+    {
+        await OrderService.AddOrderAsync(newOrder);
+        // Reset, aber Ort behalten (oft kommt der nächste Kunde ins gleiche Lager)
+        var lastOrt = newOrder.Ort;
+        newOrder = new Order { Ort = lastOrt };
+        await LoadStats();
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            searchResults.Clear();
+            return;
+        }
+        // Nutzt deine Fuzzy Logik im Service
+        searchResults = await OrderService.SearchOrdersAsync(searchTerm);
+    }
+
+    private async Task Pickup(Order order)
+    {
+        // 1. Aus DB als "abgeholt" markieren
+        await OrderService.PickupOrderAsync(order.Id);
+
+        // 2. Aus Liste entfernen
+        searchResults.RemoveAll(x => x.Order.Id == order.Id);
+
+        // 3. Discord benachrichtigen
+        // Wir machen das ohne "await" (Fire and Forget), damit die UI sofort reagiert und nicht auf Discord wartet
+        _ = DiscordService.SendPickupNotificationAsync(
+            order.Name, order.Vorname, order.ChestNumber, order.Ort, order.Price
+        );
+
+        await LoadStats();
+    }
+
+    private async Task LoadStats()
+    {
+        stats = await OrderService.GetStatsAsync();
+    }
+
+    private int GetStat(string lager) => stats.ContainsKey(lager) ? stats[lager] : 0;
+}
