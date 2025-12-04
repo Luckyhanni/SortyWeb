@@ -5,7 +5,7 @@
 
 <PageTitle>Eingang - Metzgerei</PageTitle>
 
-<div class="container mt-4">
+<div class="container mt-4 pb-5">
     <div class="row justify-content-center">
         <div class="col-xl-8 col-lg-10">
 
@@ -34,6 +34,14 @@
 
                 <EditForm Model="@newOrder" OnValidSubmit="HandleSubmit">
                     <DataAnnotationsValidator />
+
+                    @if (newOrder.Id != 0)
+                    {
+                        <div class="alert alert-warning d-flex align-items-center mb-4 border-0" style="border-radius: 12px; color: #856404; background-color: #fff3cd;">
+                            <i class="bi bi-pencil-fill me-3"></i>
+                            <strong>Bearbeitungsmodus:</strong> Du änderst gerade den Eintrag von @newOrder.Name
+                        </div>
+                    }
 
                     <div class="row g-4">
                         <div class="col-md-6">
@@ -64,35 +72,76 @@
                         </div>
                     </div>
 
-                    <div class="mt-5">
-                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold fs-4 rounded-3 shadow-lg hover-scale">
-                            SPEICHERN
+                    <div class="mt-5 d-flex gap-3">
+                        @if (newOrder.Id != 0)
+                        {
+                            <button type="button" class="btn btn-secondary py-3 px-4 fw-bold rounded-3" @onclick="CancelEdit">
+                                ABBRECHEN
+                            </button>
+                        }
+
+                        <button type="submit" class="btn w-100 py-3 fw-bold fs-4 rounded-3 shadow-lg hover-scale @(newOrder.Id != 0 ? "btn-warning text-dark" : "btn-primary")">
+                            @(newOrder.Id != 0 ? "ÄNDERUNG SPEICHERN" : "SPEICHERN")
                         </button>
                     </div>
                 </EditForm>
             </div>
 
-            @if (lastAdded != null)
+            @if (lastAdded != null && newOrder.Id == 0)
             {
                 <div class="alert alert-success mt-4 border-0 shadow-sm d-flex align-items-center justify-content-center" style="border-radius: 12px; background-color: white; color: var(--apple-green);">
                     <i class="bi bi-check-circle-fill fs-4 me-3"></i>
-                    <span class="fs-5">Erfolgreich: <strong class="text-dark">@lastAdded.Name</strong> in <strong class="text-dark">@lastAdded.Ort</strong></span>
+                    <span class="fs-5">Gespeichert: <strong>@lastAdded.Name</strong> in <strong>@lastAdded.Ort</strong></span>
                 </div>
             }
+
+            <div class="mt-5">
+                <h5 class="text-muted fw-bold mb-3 ms-2">Zuletzt eingetragen (zum Bearbeiten tippen)</h5>
+                <div class="list-group shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+                    @foreach (var order in recentOrders)
+                    {
+                        <div class="list-group-item border-0 p-3 d-flex align-items-center justify-content-between action-item">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="badge rounded-pill bg-light text-dark border">@order.Ort</div>
+                                <div>
+                                    <h5 class="m-0 fw-bold text-dark">@order.Name @order.Vorname</h5>
+                                    <small class="text-muted">Kiste #@order.ChestNumber • @order.Price.ToString("C")</small>
+                                </div>
+                            </div>
+                            <button class="btn btn-light rounded-circle text-primary" @onclick="() => EditOrder(order)">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
+
+<style>
+    .action-item {
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+
+        .action-item:hover {
+            background-color: #f8f9fa;
+        }
+</style>
 
 @code {
     private Order newOrder = new Order();
     private Order? lastAdded;
     private List<Warehouse> warehouses = new();
     private Dictionary<string, int> stats = new();
+    private List<Order> recentOrders = new(); // Liste für "Zuletzt"
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
-        // Default auf erstes Lager setzen wenn leer
+        // Default auf erstes Lager
         if (string.IsNullOrEmpty(newOrder.Ort) && warehouses.Any())
         {
             newOrder.Ort = warehouses.First().Name;
@@ -103,6 +152,32 @@
     {
         warehouses = await OrderService.GetWarehousesAsync();
         stats = await OrderService.GetFullStatsAsync();
+        recentOrders = await OrderService.GetRecentOrdersAsync(5); // Hole die letzten 5
+    }
+
+    private void EditOrder(Order order)
+    {
+        // Wir kopieren das Objekt, damit Änderungen im Formular nicht sofort die Liste unten ändern (erst beim Speichern)
+        newOrder = new Order
+        {
+            Id = order.Id,
+            Name = order.Name,
+            Vorname = order.Vorname,
+            Ort = order.Ort,
+            ChestNumber = order.ChestNumber,
+            Price = order.Price,
+            CreatedAt = order.CreatedAt,
+            IsPickedUp = order.IsPickedUp
+        };
+
+        lastAdded = null; // Feedback ausblenden beim Bearbeiten
+    }
+
+    private void CancelEdit()
+    {
+        // Reset zum "Neu"-Modus
+        var lastOrt = newOrder.Ort; // Ort behalten ist praktisch
+        newOrder = new Order { Ort = lastOrt };
     }
 
     private async Task HandleSubmit()
@@ -110,17 +185,23 @@
         if (string.IsNullOrEmpty(newOrder.Ort) && warehouses.Any())
             newOrder.Ort = warehouses.First().Name;
 
-        await OrderService.AddOrderAsync(newOrder);
-        lastAdded = new Order
+        if (newOrder.Id == 0)
         {
-            Name = newOrder.Name,
-            Ort = newOrder.Ort,
-            ChestNumber = newOrder.ChestNumber
-        };
+            // NEUER EINTRAG
+            await OrderService.AddOrderAsync(newOrder);
+            lastAdded = new Order { Name = newOrder.Name, Ort = newOrder.Ort, ChestNumber = newOrder.ChestNumber };
+        }
+        else
+        {
+            // UPDATE VORHANDENER EINTRAG
+            await OrderService.UpdateOrderAsync(newOrder);
+            lastAdded = null; // Kein "Neu"-Feedback bei Update
+        }
 
-        var lastOrt = newOrder.Ort;
-        newOrder = new Order { Ort = lastOrt };
+        // Formular zurücksetzen (Ort behalten)
+        var currentOrt = newOrder.Ort;
+        newOrder = new Order { Ort = currentOrt };
 
-        await LoadData();
+        await LoadData(); // Liste und Stats neu laden
     }
 }

@@ -19,7 +19,17 @@ namespace SortyWebApp.Services
         public async Task AddOrderAsync(Order order)
         {
             using var context = _dbContextFactory.CreateDbContext();
+            // Sicherstellen, dass ID 0 ist, damit es als neu erkannt wird
+            order.Id = 0;
             context.Orders.Add(order);
+            await context.SaveChangesAsync();
+        }
+
+        // NEU: Vorhandenen Eintrag aktualisieren
+        public async Task UpdateOrderAsync(Order order)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            context.Orders.Update(order);
             await context.SaveChangesAsync();
         }
 
@@ -29,6 +39,17 @@ namespace SortyWebApp.Services
             return await context.Orders
                 .Where(o => !o.IsPickedUp)
                 .OrderBy(o => o.Name)
+                .ToListAsync();
+        }
+
+        // NEU: Die letzten 5 Einträge holen (für die History/Edit Liste)
+        public async Task<List<Order>> GetRecentOrdersAsync(int count = 5)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            return await context.Orders
+                .Where(o => !o.IsPickedUp)
+                .OrderByDescending(o => o.Id) // Neueste ID zuerst
+                .Take(count)
                 .ToListAsync();
         }
 
@@ -68,7 +89,7 @@ namespace SortyWebApp.Services
             return results;
         }
 
-        // --- WAREHOUSE LOGIC (NEU) ---
+        // --- WAREHOUSE LOGIC ---
         public async Task<List<Warehouse>> GetWarehousesAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -93,7 +114,6 @@ namespace SortyWebApp.Services
             }
         }
 
-        // Statistik: Holt ALLE Lager und zählt die Bestellungen (auch 0 wenn leer)
         public async Task<Dictionary<string, int>> GetFullStatsAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();
