@@ -19,13 +19,11 @@ namespace SortyWebApp.Services
         public async Task AddOrderAsync(Order order)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            // Sicherstellen, dass ID 0 ist, damit es als neu erkannt wird
             order.Id = 0;
             context.Orders.Add(order);
             await context.SaveChangesAsync();
         }
 
-        // NEU: Vorhandenen Eintrag aktualisieren
         public async Task UpdateOrderAsync(Order order)
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -42,13 +40,12 @@ namespace SortyWebApp.Services
                 .ToListAsync();
         }
 
-        // NEU: Die letzten 5 Einträge holen (für die History/Edit Liste)
         public async Task<List<Order>> GetRecentOrdersAsync(int count = 5)
         {
             using var context = _dbContextFactory.CreateDbContext();
             return await context.Orders
                 .Where(o => !o.IsPickedUp)
-                .OrderByDescending(o => o.Id) // Neueste ID zuerst
+                .OrderByDescending(o => o.Id)
                 .Take(count)
                 .ToListAsync();
         }
@@ -132,6 +129,24 @@ namespace SortyWebApp.Services
             return stats;
         }
 
+        // --- NEU: DASHBOARD STATS ---
+        public async Task<DashboardStats> GetDashboardStatsAsync()
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+
+            var openCount = await context.Orders.CountAsync(o => !o.IsPickedUp);
+            var pickedUpCount = await context.Orders.CountAsync(o => o.IsPickedUp);
+
+            // Letzte Abholzeit holen
+            var lastPickup = await context.Orders
+                .Where(o => o.IsPickedUp)
+                .OrderByDescending(o => o.PickedUpAt)
+                .Select(o => o.PickedUpAt)
+                .FirstOrDefaultAsync();
+
+            return new DashboardStats(openCount, pickedUpCount, lastPickup);
+        }
+
         private static string GenerateSoundex(string input)
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
@@ -149,4 +164,7 @@ namespace SortyWebApp.Services
             return soundex.PadRight(4, '0').Substring(0, 4);
         }
     }
+
+    // Kleines Hilfsobjekt für die Dashboard Daten
+    public record DashboardStats(int OpenOrders, int PickedUpOrders, DateTime? LastPickupTime);
 }
