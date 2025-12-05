@@ -4,37 +4,45 @@
 
 <PageTitle>Übersicht - Metzgerei</PageTitle>
 
-<div class="container-fluid mt-3 px-4" style="max-width: 1400px;">
+<div class="container-fluid mt-3 px-4 pb-5" style="max-width: 1400px;">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold m-0">Bestellungs-Übersicht</h2>
-            <p class="text-muted m-0">Alle aktiven Bestellungen verwalten</p>
+            <p class="text-muted m-0">Alle Daten durchsuchen & bearbeiten</p>
         </div>
         <div class="badge bg-white text-dark border shadow-sm p-2 px-3 rounded-pill">
-            Gesamt: <strong>@FilteredOrders.Count()</strong>
+            Angezeigt: <strong>@displayedOrders.Count()</strong>
         </div>
     </div>
 
     <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 16px;">
-        <div class="row g-3">
-            <div class="col-md-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control border-0 bg-light" placeholder="Namen suchen..."
-                           @bind="searchText" @bind:event="oninput" />
+                    <input type="text" class="form-control border-0 bg-light"
+                           placeholder="Namen suchen (Fuzzy)..."
+                           @bind="searchText" @bind:event="oninput" @onkeyup="UpdateList" />
                 </div>
             </div>
             <div class="col-md-3">
-                <select class="form-select border-0 bg-light" @bind="selectedWarehouse">
-                    <option value="">Alle Lager anzeigen</option>
+                <select class="form-select border-0 bg-light" @bind="selectedWarehouse" @bind:after="UpdateList">
+                    <option value="">Alle Lager</option>
                     @foreach (var wh in warehouses)
                     {
                         <option value="@wh.Name">@wh.Name</option>
                     }
                 </select>
             </div>
-            <div class="col-md-5 d-flex justify-content-end">
+            <div class="col-md-4">
+                <div class="form-check form-switch d-flex align-items-center gap-2">
+                    <input class="form-check-input" type="checkbox" id="showHistory"
+                           @bind="showHistory" @bind:after="UpdateList" style="cursor: pointer;">
+                    <label class="form-check-label fw-bold text-muted" for="showHistory" style="cursor: pointer;">
+                        Auch Abgeholte (Archiv)
+                    </label>
+                </div>
             </div>
         </div>
     </div>
@@ -44,7 +52,8 @@
             <table class="table table-hover mb-0 align-middle">
                 <thead class="bg-light">
                     <tr>
-                        <th class="py-3 ps-4 text-muted text-uppercase small fw-bold">Name</th>
+                        <th class="py-3 ps-4 text-muted text-uppercase small fw-bold">Status</th>
+                        <th class="py-3 text-muted text-uppercase small fw-bold">Name</th>
                         <th class="py-3 text-muted text-uppercase small fw-bold">Lagerort</th>
                         <th class="py-3 text-center text-muted text-uppercase small fw-bold">Kiste</th>
                         <th class="py-3 text-end text-muted text-uppercase small fw-bold">Preis</th>
@@ -52,15 +61,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (FilteredOrders.Any())
+                    @if (displayedOrders.Any())
                     {
-                        @foreach (var order in FilteredOrders)
+                        @foreach (var order in displayedOrders)
                         {
                             var wh = warehouses.FirstOrDefault(w => w.Name == order.Ort);
                             var color = wh?.ColorHex ?? "#999";
+                            var opacity = order.IsPickedUp ? "0.5" : "1";
 
-                            <tr style="cursor: pointer;" @onclick="() => OpenEditModal(order)">
+                            <tr style="cursor: pointer; opacity: @opacity;" @onclick="() => OpenEditModal(order)">
                                 <td class="ps-4">
+                                    @if (order.IsPickedUp)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-lg"></i> Weg</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">Offen</span>
+                                    }
+                                </td>
+                                <td>
                                     <div class="fw-bold text-dark">@order.Name</div>
                                     <div class="text-muted small">@order.Vorname</div>
                                 </td>
@@ -87,8 +107,8 @@
                     else
                     {
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                Keine Bestellungen gefunden.
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                Keine Ergebnisse.
                             </td>
                         </tr>
                     }
@@ -111,6 +131,16 @@
                 <div class="modal-body p-4">
                     <EditForm Model="@editingOrder" OnValidSubmit="SaveOrder">
                         <DataAnnotationsValidator />
+
+                        <div class="mb-3 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-muted">Status:</span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="editStatus" @bind="editingOrder.IsPickedUp">
+                                <label class="form-check-label" for="editStatus">
+                                    @(editingOrder.IsPickedUp ? "Bereits Abgeholt" : "Noch Offen")
+                                </label>
+                            </div>
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Name</label>
@@ -153,57 +183,50 @@
 }
 
 @code {
-    private List<Order> allOrders = new();
+    private List<Order> displayedOrders = new();
     private List<Warehouse> warehouses = new();
 
-    // Filter Variablen
     private string searchText = "";
     private string selectedWarehouse = "";
+    private bool showHistory = false; // Toggle für Archiv
 
-    // Modal Variablen
     private bool showModal = false;
     private Order editingOrder = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
-    }
-
-    private async Task LoadData()
-    {
         warehouses = await OrderService.GetWarehousesAsync();
-        allOrders = await OrderService.GetActiveOrdersAsync();
+        await UpdateList();
     }
 
-    // Die "Magie": Wir filtern die Liste live im Speicher (schnell genug für < 5000 Einträge)
-    private IEnumerable<Order> FilteredOrders
+    private async Task UpdateList()
     {
-        get
+        if (string.IsNullOrWhiteSpace(searchText))
         {
-            var result = allOrders.AsEnumerable();
+            // Keine Suche: Einfach alle laden (je nach Toggle)
+            var all = showHistory
+                ? await OrderService.GetRecentOrdersAsync(100) // Begrenzen wir auf 100 wenn keine Suche
+                : await OrderService.GetActiveOrdersAsync();
 
-            if (!string.IsNullOrWhiteSpace(selectedWarehouse))
-            {
-                result = result.Where(o => o.Ort == selectedWarehouse);
-            }
+            displayedOrders = all;
+        }
+        else
+        {
+            // Suche aktiv: Fuzzy Search nutzen
+            // Hier übergeben wir jetzt "showHistory" an den Service!
+            var searchResults = await OrderService.SearchOrdersAsync(searchText, showHistory);
+            displayedOrders = searchResults.Select(r => r.Order).ToList();
+        }
 
-            if (!string.IsNullOrWhiteSpace(searchText))
-            {
-                // Einfache Suche (Case Insensitive)
-                result = result.Where(o =>
-                    o.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    o.Vorname.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    o.ChestNumber.ToString().Contains(searchText)
-                );
-            }
-
-            return result;
+        // Lager Filter anwenden (Client-seitig ist hier okay für die Menge)
+        if (!string.IsNullOrWhiteSpace(selectedWarehouse))
+        {
+            displayedOrders = displayedOrders.Where(o => o.Ort == selectedWarehouse).ToList();
         }
     }
 
     private void OpenEditModal(Order order)
     {
-        // Kopie erstellen, damit wir nicht live in der Tabelle ändern bevor gespeichert ist
         editingOrder = new Order
         {
             Id = order.Id,
@@ -213,7 +236,8 @@
             ChestNumber = order.ChestNumber,
             Price = order.Price,
             CreatedAt = order.CreatedAt,
-            IsPickedUp = order.IsPickedUp
+            IsPickedUp = order.IsPickedUp,
+            PickedUpAt = order.PickedUpAt
         };
         showModal = true;
     }
@@ -226,7 +250,7 @@
     private async Task SaveOrder()
     {
         await OrderService.UpdateOrderAsync(editingOrder);
-        await LoadData(); // Daten neu laden um Änderungen anzuzeigen
+        await UpdateList();
         showModal = false;
     }
 }

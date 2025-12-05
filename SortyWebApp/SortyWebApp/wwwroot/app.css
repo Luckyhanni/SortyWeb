@@ -55,29 +55,27 @@ input[type="checkbox"].navbar-toggler {
     }
 
     .top-row {
-        display: flex; /* Zeigt Menüleiste auf Handy */
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 1rem;
-        background-color: var(--apple-sidebar);
+        display: none; /* Wir nutzen jetzt den Header im NavMenu.razor */
     }
 
-    /* Das Menü klappt auf, wenn man klickt */
+    /* Das Menü ist standardmäßig versteckt */
     .nav-scrollable {
         display: none;
         background-color: var(--apple-sidebar);
+        border-bottom: 1px solid #333;
     }
 
-    /* Blazor-Logik: Wenn Checkbox "checked", zeige Menü */
-    .navbar-toggler:checked ~ .nav-scrollable {
-        display: block;
-        position: absolute;
-        top: 3.5rem;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-    }
+        /* WENN die C# Klasse "mobile-open" gesetzt ist, zeigen wir es an */
+        .nav-scrollable.mobile-open {
+            display: block;
+            position: absolute;
+            top: 60px; /* Höhe des Headers */
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            padding-bottom: 20px;
+        }
 }
 
 /* --- DESKTOP & IPAD PRO (>= 992px) --- */

@@ -62,18 +62,26 @@ namespace SortyWebApp.Services
             }
         }
 
-        // NEU: Alles zurücksetzen (Saison-Start)
         public async Task ClearAllOrdersAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();
-            // Löscht alle Einträge in der Tabelle "Orders" effizient
             await context.Orders.ExecuteDeleteAsync();
         }
 
-        public async Task<List<(Order Order, int Score)>> SearchOrdersAsync(string inputName)
+        // --- UPDATE: Suche mit Parameter für "Alles durchsuchen" ---
+        public async Task<List<(Order Order, int Score)>> SearchOrdersAsync(string inputName, bool includePickedUp = false)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            var allOrders = await context.Orders.Where(o => !o.IsPickedUp).ToListAsync();
+
+            // Basis-Query: Entweder nur aktive oder alle
+            var query = context.Orders.AsQueryable();
+            if (!includePickedUp)
+            {
+                query = query.Where(o => !o.IsPickedUp);
+            }
+
+            var allOrders = await query.ToListAsync();
+
             string inputSoundex = GenerateSoundex(inputName);
 
             var results = allOrders.Select(order =>
@@ -122,10 +130,8 @@ namespace SortyWebApp.Services
         public async Task<Dictionary<string, int>> GetFullStatsAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();
-
             var warehouses = await context.Warehouses.ToListAsync();
             var activeOrders = await context.Orders.Where(o => !o.IsPickedUp).ToListAsync();
-
             var stats = new Dictionary<string, int>();
 
             foreach (var wh in warehouses)
@@ -133,17 +139,14 @@ namespace SortyWebApp.Services
                 int count = activeOrders.Count(o => o.Ort == wh.Name);
                 stats[wh.Name] = count;
             }
-
             return stats;
         }
 
         public async Task<DashboardStats> GetDashboardStatsAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();
-
             var openCount = await context.Orders.CountAsync(o => !o.IsPickedUp);
             var pickedUpCount = await context.Orders.CountAsync(o => o.IsPickedUp);
-
             var lastPickup = await context.Orders
                 .Where(o => o.IsPickedUp)
                 .OrderByDescending(o => o.PickedUpAt)
