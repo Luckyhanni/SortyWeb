@@ -3,33 +3,33 @@
 @inject DiscordService DiscordService
 @rendermode InteractiveServer
 
-<PageTitle>Eingang - Metzgerei</PageTitle>
+<PageTitle>Eingang</PageTitle>
 
-<div class="container mt-4 pb-5">
+<div class="container mt-2 pb-5">
     <div class="row justify-content-center">
-        <div class="col-xl-8 col-lg-10">
+        <div class="col-xl-9 col-lg-11">
 
-            <div class="text-center mb-4">
-                <img src="logo.png" alt="Logo" style="height: 80px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />
-                <h2 class="fw-bold mt-2">Bestellannahme</h2>
-            </div>
+            <div class="card border-0 p-4 animate__animated animate__fadeInUp" style="border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.08);">
 
-            <div class="card border-0 p-5 animate__animated animate__fadeInUp" style="border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.08);">
+                <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-4 gap-3">
 
-                <div class="d-flex flex-wrap gap-2 pb-3 mb-4 border-bottom">
-                    <div class="badge bg-dark text-white p-2 px-3 rounded-pill d-flex align-items-center" style="height: 35px;">
-                        <span class="small text-white-50 me-2 text-uppercase" style="font-size: 0.7rem;">TOTAL</span>
-                        <span class="fs-6 fw-bold">@stats.Values.Sum()</span>
-                    </div>
-                    @foreach (var wh in warehouses)
-                    {
-                        var count = stats.ContainsKey(wh.Name) ? stats[wh.Name] : 0;
-                        <div class="badge p-2 px-3 rounded-pill d-flex align-items-center"
-                             style="height: 35px; background-color: @(count > 0 ? wh.ColorHex : "#f5f5f7"); color: @(count > 0 ? "white" : "#86868b"); border: 1px solid @(count > 0 ? wh.ColorHex : "#e5e5ea");">
-                            <span class="small me-2" style="opacity: 0.9; font-weight: 600;">@wh.Name</span>
-                            <span class="fs-6 fw-bold">@count</span>
+                    <img src="logo.png" alt="Logo" style="height: 50px; width: auto; object-fit: contain;" />
+
+                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                        <div class="badge bg-dark text-white p-2 px-3 rounded-pill d-flex align-items-center" style="height: 32px;">
+                            <span class="small text-white-50 me-2 text-uppercase" style="font-size: 0.65rem;">TOTAL</span>
+                            <span class="fs-6 fw-bold">@stats.Values.Sum()</span>
                         </div>
-                    }
+                        @foreach (var wh in warehouses)
+                        {
+                            var count = stats.ContainsKey(wh.Name) ? stats[wh.Name] : 0;
+                            <div class="badge p-2 px-3 rounded-pill d-flex align-items-center"
+                                 style="height: 32px; background-color: @(count > 0 ? wh.ColorHex : "#f5f5f7"); color: @(count > 0 ? "white" : "#86868b"); border: 1px solid @(count > 0 ? wh.ColorHex : "#e5e5ea");">
+                                <span class="small me-2" style="opacity: 0.9; font-weight: 600;">@wh.Name</span>
+                                <span class="fs-6 fw-bold">@count</span>
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 <EditForm Model="@newOrder" OnValidSubmit="HandleSubmit">
@@ -37,25 +37,28 @@
 
                     @if (newOrder.Id != 0)
                     {
-                        <div class="alert alert-warning d-flex align-items-center mb-4 border-0" style="border-radius: 12px; color: #856404; background-color: #fff3cd;">
+                        <div class="alert alert-warning d-flex align-items-center mb-4 border-0 py-2" style="border-radius: 12px; color: #856404; background-color: #fff3cd;">
                             <i class="bi bi-pencil-fill me-3"></i>
-                            <strong>Bearbeitungsmodus:</strong> Du änderst gerade den Eintrag von @newOrder.Name
+                            <div style="line-height: 1.2;">
+                                <small class="text-uppercase fw-bold opacity-75" style="font-size: 0.7rem;">Bearbeitungsmodus</small><br>
+                                <strong>@newOrder.Name</strong> wird geändert.
+                            </div>
                         </div>
                     }
 
-                    <div class="row g-4">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Nachname</label>
-                            <InputText @bind-Value="newOrder.Name" class="form-control form-control-lg fw-bold" placeholder="Müller" style="height: 60px; font-size: 1.4rem;" />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Nachname</label>
+                            <InputText @bind-Value="newOrder.Name" class="form-control form-control-lg fw-bold" placeholder="Müller" style="height: 55px; font-size: 1.3rem;" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Vorname</label>
-                            <InputText @bind-Value="newOrder.Vorname" class="form-control form-control-lg" style="height: 60px;" />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Vorname</label>
+                            <InputText @bind-Value="newOrder.Vorname" class="form-control form-control-lg" style="height: 55px;" />
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Lagerort</label>
-                            <InputSelect @bind-Value="newOrder.Ort" class="form-select form-select-lg fw-bold" style="height: 60px; color: #333;">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Lagerort</label>
+                            <InputSelect @bind-Value="newOrder.Ort" class="form-select form-select-lg fw-bold" style="height: 55px; color: #333;">
                                 @foreach (var wh in warehouses)
                                 {
                                     <option value="@wh.Name">@wh.Name</option>
@@ -63,16 +66,16 @@
                             </InputSelect>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Kiste #</label>
-                            <InputNumber @bind-Value="newOrder.ChestNumber" class="form-control form-control-lg text-center fw-bold" style="height: 60px; font-size: 1.4rem;" />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Kiste #</label>
+                            <InputNumber @bind-Value="newOrder.ChestNumber" class="form-control form-control-lg text-center fw-bold" style="height: 55px; font-size: 1.3rem;" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Preis (€)</label>
-                            <InputNumber @bind-Value="newOrder.Price" class="form-control form-control-lg text-end" style="height: 60px;" />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Preis (€)</label>
+                            <InputNumber @bind-Value="newOrder.Price" class="form-control form-control-lg text-end" style="height: 55px;" />
                         </div>
                     </div>
 
-                    <div class="mt-5 d-flex gap-3">
+                    <div class="mt-4 d-flex gap-3">
                         @if (newOrder.Id != 0)
                         {
                             <button type="button" class="btn btn-secondary py-3 px-4 fw-bold rounded-3" @onclick="CancelEdit">
@@ -80,7 +83,7 @@
                             </button>
                         }
 
-                        <button type="submit" class="btn w-100 py-3 fw-bold fs-4 rounded-3 shadow-lg hover-scale @(newOrder.Id != 0 ? "btn-warning text-dark" : "btn-primary")">
+                        <button type="submit" class="btn w-100 py-3 fw-bold fs-5 rounded-3 shadow-lg hover-scale @(newOrder.Id != 0 ? "btn-warning text-dark" : "btn-primary")">
                             @(newOrder.Id != 0 ? "ÄNDERUNG SPEICHERN" : "SPEICHERN")
                         </button>
                     </div>
@@ -89,28 +92,34 @@
 
             @if (lastAdded != null && newOrder.Id == 0)
             {
-                <div class="alert alert-success mt-4 border-0 shadow-sm d-flex align-items-center justify-content-center" style="border-radius: 12px; background-color: white; color: var(--apple-green);">
-                    <i class="bi bi-check-circle-fill fs-4 me-3"></i>
-                    <span class="fs-5">Gespeichert: <strong>@lastAdded.Name</strong> in <strong>@lastAdded.Ort</strong></span>
+                <div class="alert alert-success mt-3 border-0 shadow-sm d-flex align-items-center justify-content-center py-2" style="border-radius: 12px; background-color: white; color: var(--apple-green);">
+                    <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                    <span>Gespeichert: <strong>@lastAdded.Name</strong> in <strong>@lastAdded.Ort</strong></span>
                 </div>
             }
 
-            <div class="mt-5">
-                <h5 class="text-muted fw-bold mb-3 ms-2">Zuletzt eingetragen (zum Bearbeiten tippen)</h5>
+            <div class="mt-4">
+                <h6 class="text-muted fw-bold mb-2 ms-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Zuletzt eingetragen (Tippen zum Bearbeiten)</h6>
                 <div class="list-group shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
                     @foreach (var order in recentOrders)
                     {
-                        <div class="list-group-item border-0 p-3 d-flex align-items-center justify-content-between action-item">
+                        var wh = warehouses.FirstOrDefault(w => w.Name == order.Ort);
+                        var color = wh?.ColorHex ?? "#999";
+
+                        <div class="list-group-item border-0 p-3 d-flex align-items-center justify-content-between action-item"
+                             style="border-bottom: 1px solid rgba(0,0,0,0.05) !important;"
+                             @onclick="() => EditOrder(order)">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="badge rounded-pill bg-light text-dark border">@order.Ort</div>
+                                <div class="badge rounded-pill px-2 py-1" style="background-color: @color; color: white; font-weight: 500;">@order.Ort</div>
                                 <div>
-                                    <h5 class="m-0 fw-bold text-dark">@order.Name @order.Vorname</h5>
-                                    <small class="text-muted">Kiste #@order.ChestNumber • @order.Price.ToString("C")</small>
+                                    <span class="fw-bold text-dark">@order.Name</span> <span class="text-muted">@order.Vorname</span>
+                                    <span class="mx-2 text-black-50">|</span>
+                                    <small class="text-muted fw-bold">Kiste #@order.ChestNumber</small>
                                 </div>
                             </div>
-                            <button class="btn btn-light rounded-circle text-primary" @onclick="() => EditOrder(order)">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
+                            <div class="text-primary">
+                                <i class="bi bi-pencil-square fs-5"></i>
+                            </div>
                         </div>
                     }
                 </div>
@@ -127,7 +136,7 @@
     }
 
         .action-item:hover {
-            background-color: #f8f9fa;
+            background-color: #f0f0f0;
         }
 </style>
 
@@ -136,12 +145,11 @@
     private Order? lastAdded;
     private List<Warehouse> warehouses = new();
     private Dictionary<string, int> stats = new();
-    private List<Order> recentOrders = new(); // Liste für "Zuletzt"
+    private List<Order> recentOrders = new();
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
-        // Default auf erstes Lager
         if (string.IsNullOrEmpty(newOrder.Ort) && warehouses.Any())
         {
             newOrder.Ort = warehouses.First().Name;
@@ -152,12 +160,11 @@
     {
         warehouses = await OrderService.GetWarehousesAsync();
         stats = await OrderService.GetFullStatsAsync();
-        recentOrders = await OrderService.GetRecentOrdersAsync(5); // Hole die letzten 5
+        recentOrders = await OrderService.GetRecentOrdersAsync(5);
     }
 
     private void EditOrder(Order order)
     {
-        // Wir kopieren das Objekt, damit Änderungen im Formular nicht sofort die Liste unten ändern (erst beim Speichern)
         newOrder = new Order
         {
             Id = order.Id,
@@ -169,14 +176,12 @@
             CreatedAt = order.CreatedAt,
             IsPickedUp = order.IsPickedUp
         };
-
-        lastAdded = null; // Feedback ausblenden beim Bearbeiten
+        lastAdded = null;
     }
 
     private void CancelEdit()
     {
-        // Reset zum "Neu"-Modus
-        var lastOrt = newOrder.Ort; // Ort behalten ist praktisch
+        var lastOrt = newOrder.Ort;
         newOrder = new Order { Ort = lastOrt };
     }
 
@@ -187,21 +192,18 @@
 
         if (newOrder.Id == 0)
         {
-            // NEUER EINTRAG
             await OrderService.AddOrderAsync(newOrder);
             lastAdded = new Order { Name = newOrder.Name, Ort = newOrder.Ort, ChestNumber = newOrder.ChestNumber };
         }
         else
         {
-            // UPDATE VORHANDENER EINTRAG
             await OrderService.UpdateOrderAsync(newOrder);
-            lastAdded = null; // Kein "Neu"-Feedback bei Update
+            lastAdded = null;
         }
 
-        // Formular zurücksetzen (Ort behalten)
         var currentOrt = newOrder.Ort;
         newOrder = new Order { Ort = currentOrt };
 
-        await LoadData(); // Liste und Stats neu laden
+        await LoadData();
     }
 }
