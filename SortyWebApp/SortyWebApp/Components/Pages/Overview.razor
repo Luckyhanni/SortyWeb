@@ -1,0 +1,232 @@
+﻿@page "/overview"
+@inject OrderService OrderService
+@rendermode InteractiveServer
+
+<PageTitle>Übersicht - Metzgerei</PageTitle>
+
+<div class="container-fluid mt-3 px-4" style="max-width: 1400px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold m-0">Bestellungs-Übersicht</h2>
+            <p class="text-muted m-0">Alle aktiven Bestellungen verwalten</p>
+        </div>
+        <div class="badge bg-white text-dark border shadow-sm p-2 px-3 rounded-pill">
+            Gesamt: <strong>@FilteredOrders.Count()</strong>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 16px;">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control border-0 bg-light" placeholder="Namen suchen..."
+                           @bind="searchText" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select border-0 bg-light" @bind="selectedWarehouse">
+                    <option value="">Alle Lager anzeigen</option>
+                    @foreach (var wh in warehouses)
+                    {
+                        <option value="@wh.Name">@wh.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5 d-flex justify-content-end">
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 16px;">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="py-3 ps-4 text-muted text-uppercase small fw-bold">Name</th>
+                        <th class="py-3 text-muted text-uppercase small fw-bold">Lagerort</th>
+                        <th class="py-3 text-center text-muted text-uppercase small fw-bold">Kiste</th>
+                        <th class="py-3 text-end text-muted text-uppercase small fw-bold">Preis</th>
+                        <th class="py-3 text-end pe-4 text-muted text-uppercase small fw-bold">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (FilteredOrders.Any())
+                    {
+                        @foreach (var order in FilteredOrders)
+                        {
+                            var wh = warehouses.FirstOrDefault(w => w.Name == order.Ort);
+                            var color = wh?.ColorHex ?? "#999";
+
+                            <tr style="cursor: pointer;" @onclick="() => OpenEditModal(order)">
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">@order.Name</div>
+                                    <div class="text-muted small">@order.Vorname</div>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill fw-normal px-2 py-1"
+                                          style="background-color: @color; color: white;">
+                                        @order.Ort
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="fw-bold fs-5 text-dark">#@order.ChestNumber</span>
+                                </td>
+                                <td class="text-end fw-bold text-muted">
+                                    @order.Price.ToString("C")
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-light btn-sm text-primary rounded-circle" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(order)">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                Keine Bestellungen gefunden.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div class="modal-backdrop fade show" style="background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">Bestellung bearbeiten</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <EditForm Model="@editingOrder" OnValidSubmit="SaveOrder">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Name</label>
+                            <div class="input-group">
+                                <InputText @bind-Value="editingOrder.Name" class="form-control fw-bold" placeholder="Nachname" />
+                                <InputText @bind-Value="editingOrder.Vorname" class="form-control" placeholder="Vorname" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-8">
+                                <label class="form-label small fw-bold text-muted">Lagerort</label>
+                                <InputSelect @bind-Value="editingOrder.Ort" class="form-select">
+                                    @foreach (var wh in warehouses)
+                                    {
+                                        <option value="@wh.Name">@wh.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small fw-bold text-muted">Kiste</label>
+                                <InputNumber @bind-Value="editingOrder.ChestNumber" class="form-control text-center fw-bold" />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Preis (€)</label>
+                            <InputNumber @bind-Value="editingOrder.Price" class="form-control" />
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-light w-50 fw-bold" @onclick="CloseModal">Abbrechen</button>
+                            <button type="submit" class="btn btn-primary w-50 fw-bold">Speichern</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Order> allOrders = new();
+    private List<Warehouse> warehouses = new();
+
+    // Filter Variablen
+    private string searchText = "";
+    private string selectedWarehouse = "";
+
+    // Modal Variablen
+    private bool showModal = false;
+    private Order editingOrder = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        warehouses = await OrderService.GetWarehousesAsync();
+        allOrders = await OrderService.GetActiveOrdersAsync();
+    }
+
+    // Die "Magie": Wir filtern die Liste live im Speicher (schnell genug für < 5000 Einträge)
+    private IEnumerable<Order> FilteredOrders
+    {
+        get
+        {
+            var result = allOrders.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(selectedWarehouse))
+            {
+                result = result.Where(o => o.Ort == selectedWarehouse);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                // Einfache Suche (Case Insensitive)
+                result = result.Where(o =>
+                    o.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    o.Vorname.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    o.ChestNumber.ToString().Contains(searchText)
+                );
+            }
+
+            return result;
+        }
+    }
+
+    private void OpenEditModal(Order order)
+    {
+        // Kopie erstellen, damit wir nicht live in der Tabelle ändern bevor gespeichert ist
+        editingOrder = new Order
+        {
+            Id = order.Id,
+            Name = order.Name,
+            Vorname = order.Vorname,
+            Ort = order.Ort,
+            ChestNumber = order.ChestNumber,
+            Price = order.Price,
+            CreatedAt = order.CreatedAt,
+            IsPickedUp = order.IsPickedUp
+        };
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SaveOrder()
+    {
+        await OrderService.UpdateOrderAsync(editingOrder);
+        await LoadData(); // Daten neu laden um Änderungen anzuzeigen
+        showModal = false;
+    }
+}

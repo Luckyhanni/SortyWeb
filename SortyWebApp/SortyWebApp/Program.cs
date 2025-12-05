@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using SortyWebApp.Components;
 using SortyWebApp.Data;
 using SortyWebApp.Services;
-using SortyWebApp.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

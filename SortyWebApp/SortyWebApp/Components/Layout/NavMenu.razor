@@ -1,47 +1,52 @@
-﻿<div class="d-none d-lg-block">
-    <a class="navbar-brand d-flex align-items-center gap-3" href="">
-        <img src="logo.png" style="height: 40px; border-radius: 8px;" alt="Sorty" />
-        <span>Metzgerei Sorty</span>
-    </a>
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="">
+            <i class="bi bi-box-seam-fill text-primary bg-white rounded-circle p-2" style="font-size: 1rem;"></i>
+            <span style="font-weight: 700; letter-spacing: -0.5px;">Metzgerei Sorty</span>
+        </a>
+    </div>
 </div>
 
-<div class="d-lg-none d-flex justify-content-between align-items-center w-100 px-3 py-2">
-    <a class="text-white text-decoration-none fw-bold fs-4 d-flex align-items-center gap-2" href="">
-        <i class="bi bi-box-seam-fill"></i> Sorty
-    </a>
+<input type="checkbox" title="Navigation menu" id="nav-toggle" class="navbar-toggler" />
 
-    <label for="nav-toggle" class="btn btn-dark border-secondary">
-        <i class="bi bi-list fs-3"></i>
-    </label>
-</div>
-
-<input type="checkbox" id="nav-toggle" class="navbar-toggler" />
-
-<div class="nav-scrollable">
+<div class="nav-scrollable" onclick="document.querySelector('#nav-toggle').click()">
     <nav class="flex-column pt-3">
-        <div class="px-4 mb-2 text-uppercase small fw-bold" style="color: #555; letter-spacing: 1px;">
-            Menü
+
+        <div class="px-3 mb-2 text-white-50 text-uppercase small fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">
+            Hauptmenü
         </div>
 
-        <div class="nav-item">
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <i class="bi bi-grid-fill me-3 fs-5"></i> Übersicht
+                <i class="bi bi-grid-fill me-3 fs-5"></i> Dashboard
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="overview">
+                <i class="bi bi-table me-3 fs-5"></i> Alle Bestellungen
             </NavLink>
         </div>
 
-        <div class="nav-item">
+        <div class="px-3 mt-4 mb-2 text-white-50 text-uppercase small fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">
+            Arbeitsbereich
+        </div>
+
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="entry">
                 <i class="bi bi-plus-square-fill me-3 fs-5"></i> Annahme
             </NavLink>
         </div>
-
-        <div class="nav-item">
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="runner">
                 <i class="bi bi-phone-fill me-3 fs-5"></i> Läufer / Abholung
             </NavLink>
         </div>
 
-        <div class="nav-item">
+        <div class="px-3 mt-4 mb-2 text-white-50 text-uppercase small fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">
+            System
+        </div>
+
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="settings">
                 <i class="bi bi-gear-fill me-3 fs-5"></i> Einstellungen
             </NavLink>
