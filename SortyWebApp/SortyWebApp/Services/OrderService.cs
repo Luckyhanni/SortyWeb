@@ -62,6 +62,14 @@ namespace SortyWebApp.Services
             }
         }
 
+        // NEU: Alles zurücksetzen (Saison-Start)
+        public async Task ClearAllOrdersAsync()
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            // Löscht alle Einträge in der Tabelle "Orders" effizient
+            await context.Orders.ExecuteDeleteAsync();
+        }
+
         public async Task<List<(Order Order, int Score)>> SearchOrdersAsync(string inputName)
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -129,7 +137,6 @@ namespace SortyWebApp.Services
             return stats;
         }
 
-        // --- NEU: DASHBOARD STATS ---
         public async Task<DashboardStats> GetDashboardStatsAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -137,7 +144,6 @@ namespace SortyWebApp.Services
             var openCount = await context.Orders.CountAsync(o => !o.IsPickedUp);
             var pickedUpCount = await context.Orders.CountAsync(o => o.IsPickedUp);
 
-            // Letzte Abholzeit holen
             var lastPickup = await context.Orders
                 .Where(o => o.IsPickedUp)
                 .OrderByDescending(o => o.PickedUpAt)
@@ -165,6 +171,5 @@ namespace SortyWebApp.Services
         }
     }
 
-    // Kleines Hilfsobjekt für die Dashboard Daten
     public record DashboardStats(int OpenOrders, int PickedUpOrders, DateTime? LastPickupTime);
 }

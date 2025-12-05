@@ -2,39 +2,72 @@
 @inject OrderService OrderService
 @rendermode InteractiveServer
 
-<div class="container mt-4" style="max-width: 800px;">
-    <h2 class="fw-bold mb-4">Einstellungen / Lagerverwaltung</h2>
+<div class="container mt-4 pb-5" style="max-width: 800px;">
+    <h2 class="fw-bold mb-4">Einstellungen</h2>
 
-    <div class="card border-0 p-4 mb-4">
-        <h4 class="mb-3">Neues Lager anlegen</h4>
+    <div class="card border-0 p-4 mb-4 shadow-sm">
+        <h4 class="mb-3 fw-bold">Lager anlegen</h4>
         <div class="row g-2 align-items-end">
             <div class="col-7">
-                <label class="small text-muted fw-bold">Name</label>
+                <label class="small text-muted fw-bold text-uppercase">Name</label>
                 <input type="text" class="form-control" @bind="newName" placeholder="z.B. Kühlhaus" />
             </div>
             <div class="col-2">
-                <label class="small text-muted fw-bold">Farbe</label>
+                <label class="small text-muted fw-bold text-uppercase">Farbe</label>
                 <input type="color" class="form-control form-control-color w-100" @bind="newColor" title="Farbe wählen" />
             </div>
             <div class="col-3">
-                <button class="btn btn-primary w-100" @onclick="AddWarehouse">Hinzufügen</button>
+                <button class="btn btn-primary w-100 fw-bold" @onclick="AddWarehouse">Hinzufügen</button>
             </div>
         </div>
     </div>
 
-    <div class="row g-3">
+    <h5 class="text-muted fw-bold mb-3 ms-1 text-uppercase small">Aktive Lager</h5>
+    <div class="row g-3 mb-5">
         @foreach (var wh in warehouses)
         {
             <div class="col-md-6">
-                <div class="card border-0 p-3 d-flex flex-row align-items-center justify-content-between">
+                <div class="card border-0 p-3 d-flex flex-row align-items-center justify-content-between shadow-sm">
                     <div class="d-flex align-items-center gap-3">
                         <div style="width: 24px; height: 24px; background-color: @wh.ColorHex; border-radius: 50%;"></div>
                         <span class="fw-bold fs-5">@wh.Name</span>
                     </div>
-                    <button class="btn btn-outline-danger btn-sm rounded-circle" @onclick="() => Delete(wh.Id)">
-                        <i class="bi bi-trash"></i>
+                    <button class="btn btn-light text-danger btn-sm rounded-circle" @onclick="() => Delete(wh.Id)">
+                        <i class="bi bi-trash-fill"></i>
                     </button>
                 </div>
+            </div>
+        }
+    </div>
+
+    <hr class="my-5" />
+
+    <div class="card border-danger border-opacity-25 bg-danger bg-opacity-10 p-4">
+        <h4 class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i> Daten zurücksetzen</h4>
+        <p class="text-dark opacity-75">
+            Hier können alle Bestellungen gelöscht werden (z.B. für den Start am nächsten Tag).
+            Die Lager-Einstellungen bleiben erhalten.
+        </p>
+
+        @if (!showConfirm)
+        {
+            <button class="btn btn-danger fw-bold" @onclick="() => showConfirm = true">
+                Alles auf 0 setzen
+            </button>
+        }
+        else
+        {
+            <div class="d-flex gap-2 align-items-center animate__animated animate__fadeIn">
+                <span class="fw-bold text-danger">Wirklich alle Bestellungen löschen?</span>
+                <button class="btn btn-danger fw-bold" @onclick="ExecuteReset">JA, LÖSCHEN</button>
+                <button class="btn btn-secondary" @onclick="() => showConfirm = false">Abbrechen</button>
+            </div>
+        }
+
+        @if (resetDone)
+        {
+            <div class="alert alert-success mt-3 mb-0">
+                <i class="bi bi-check-circle me-2"></i> Alle Bestellungen wurden gelöscht.
             </div>
         }
     </div>
@@ -44,6 +77,9 @@
     private List<Warehouse> warehouses = new();
     private string newName = "";
     private string newColor = "#007AFF";
+
+    private bool showConfirm = false;
+    private bool resetDone = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -69,5 +105,17 @@
     {
         await OrderService.DeleteWarehouseAsync(id);
         await LoadData();
+    }
+
+    private async Task ExecuteReset()
+    {
+        await OrderService.ClearAllOrdersAsync();
+        showConfirm = false;
+        resetDone = true;
+
+        // Nachricht nach 3 Sekunden ausblenden
+        await Task.Delay(3000);
+        resetDone = false;
+        StateHasChanged();
     }
 }
