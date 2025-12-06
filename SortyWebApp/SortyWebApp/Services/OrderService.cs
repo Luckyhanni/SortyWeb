@@ -15,7 +15,6 @@ namespace SortyWebApp.Services
             _dbContextFactory = dbContextFactory;
         }
 
-        // --- ORDER LOGIC ---
         public async Task AddOrderAsync(Order order)
         {
             using var context = _dbContextFactory.CreateDbContext();
@@ -36,7 +35,8 @@ namespace SortyWebApp.Services
             using var context = _dbContextFactory.CreateDbContext();
             return await context.Orders
                 .Where(o => !o.IsPickedUp)
-                .OrderBy(o => o.Name)
+                .OrderBy(o => o.PickupDate) // WICHTIG: Erst nach Datum sortieren
+                .ThenBy(o => o.Name)        // Dann nach Name
                 .ToListAsync();
         }
 
@@ -68,12 +68,10 @@ namespace SortyWebApp.Services
             await context.Orders.ExecuteDeleteAsync();
         }
 
-        // --- UPDATE: Suche mit Parameter für "Alles durchsuchen" ---
         public async Task<List<(Order Order, int Score)>> SearchOrdersAsync(string inputName, bool includePickedUp = false)
         {
             using var context = _dbContextFactory.CreateDbContext();
 
-            // Basis-Query: Entweder nur aktive oder alle
             var query = context.Orders.AsQueryable();
             if (!includePickedUp)
             {
@@ -81,7 +79,6 @@ namespace SortyWebApp.Services
             }
 
             var allOrders = await query.ToListAsync();
-
             string inputSoundex = GenerateSoundex(inputName);
 
             var results = allOrders.Select(order =>
@@ -102,7 +99,7 @@ namespace SortyWebApp.Services
             return results;
         }
 
-        // --- WAREHOUSE LOGIC ---
+        // --- WAREHOUSE ---
         public async Task<List<Warehouse>> GetWarehousesAsync()
         {
             using var context = _dbContextFactory.CreateDbContext();

@@ -12,7 +12,6 @@
             <div class="card border-0 p-4 animate__animated animate__fadeInUp" style="border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.08);">
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-4 gap-3">
-
                     <img src="logo.png" alt="Logo" style="height: 50px; width: auto; object-fit: contain;" />
 
                     <div class="d-flex flex-wrap gap-2 justify-content-end">
@@ -47,6 +46,25 @@
                     }
 
                     <div class="row g-3">
+                        <div class="col-12 mb-1">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Abhol-Tag wählen</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn w-50 py-2 fw-bold shadow-sm @(IsDateSelected(22) ? "btn-primary" : "btn-light border")"
+                                        @onclick="() => SetDate(22)"
+                                        style="border-radius: 12px; transition: all 0.2s;">
+                                    <span class="d-block fs-5">22. Dez</span>
+                                    <small class="text-uppercase" style="opacity: 0.8; font-size: 0.75rem;">Sonntag</small>
+                                </button>
+
+                                <button type="button" class="btn w-50 py-2 fw-bold shadow-sm @(IsDateSelected(23) ? "btn-primary" : "btn-light border")"
+                                        @onclick="() => SetDate(23)"
+                                        style="border-radius: 12px; transition: all 0.2s;">
+                                    <span class="d-block fs-5">23. Dez</span>
+                                    <small class="text-uppercase" style="opacity: 0.8; font-size: 0.75rem;">Montag</small>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-1">Nachname</label>
                             <InputText @bind-Value="newOrder.Name" class="form-control form-control-lg fw-bold" placeholder="Müller" style="height: 55px; font-size: 1.3rem;" />
@@ -56,7 +74,7 @@
                             <InputText @bind-Value="newOrder.Vorname" class="form-control form-control-lg" style="height: 55px;" />
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-8">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-1">Lagerort</label>
                             <InputSelect @bind-Value="newOrder.Ort" class="form-select form-select-lg fw-bold" style="height: 55px; color: #333;">
                                 @foreach (var wh in warehouses)
@@ -69,10 +87,6 @@
                             <label class="form-label fw-bold small text-muted text-uppercase mb-1">Kiste #</label>
                             <InputNumber @bind-Value="newOrder.ChestNumber" class="form-control form-control-lg text-center fw-bold" style="height: 55px; font-size: 1.3rem;" />
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Preis (€)</label>
-                            <InputNumber @bind-Value="newOrder.Price" class="form-control form-control-lg text-end" style="height: 55px;" />
-                        </div>
                     </div>
 
                     <div class="mt-4 d-flex gap-3">
@@ -83,8 +97,8 @@
                             </button>
                         }
 
-                        <button type="submit" class="btn w-100 py-3 fw-bold fs-5 rounded-3 shadow-lg hover-scale @(newOrder.Id != 0 ? "btn-warning text-dark" : "btn-primary")">
-                            @(newOrder.Id != 0 ? "ÄNDERUNG SPEICHERN" : "SPEICHERN")
+                        <button type="submit" class="btn w-100 py-3 fw-bold fs-5 rounded-3 shadow-lg hover-scale @(newOrder.Id != 0 ? "btn-warning text-dark" : "btn-dark")">
+                            @(newOrder.Id != 0 ? "ÄNDERUNG SPEICHERN" : "SPEICHERN & ETIKETT")
                         </button>
                     </div>
                 </EditForm>
@@ -94,12 +108,12 @@
             {
                 <div class="alert alert-success mt-3 border-0 shadow-sm d-flex align-items-center justify-content-center py-2" style="border-radius: 12px; background-color: white; color: var(--apple-green);">
                     <i class="bi bi-check-circle-fill fs-5 me-2"></i>
-                    <span>Gespeichert: <strong>@lastAdded.Name</strong> in <strong>@lastAdded.Ort</strong></span>
+                    <span>Gespeichert: <strong>@lastAdded.Name</strong> in <strong>@lastAdded.Ort</strong> (am @lastAdded.PickupDate.ToString("dd.MM."))</span>
                 </div>
             }
 
             <div class="mt-4">
-                <h6 class="text-muted fw-bold mb-2 ms-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Zuletzt eingetragen (Tippen zum Bearbeiten)</h6>
+                <h6 class="text-muted fw-bold mb-2 ms-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Zuletzt eingetragen</h6>
                 <div class="list-group shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
                     @foreach (var order in recentOrders)
                     {
@@ -117,8 +131,8 @@
                                     <small class="text-muted fw-bold">Kiste #@order.ChestNumber</small>
                                 </div>
                             </div>
-                            <div class="text-primary">
-                                <i class="bi bi-pencil-square fs-5"></i>
+                            <div class="badge bg-light text-dark border">
+                                @order.PickupDate.ToString("dd.MM.")
                             </div>
                         </div>
                     }
@@ -138,6 +152,11 @@
         .action-item:hover {
             background-color: #f0f0f0;
         }
+
+    .btn-light {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
 </style>
 
 @code {
@@ -149,6 +168,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Standard auf 22.12. geändert
+        SetDate(22);
+
         await LoadData();
         if (string.IsNullOrEmpty(newOrder.Ort) && warehouses.Any())
         {
@@ -163,6 +185,17 @@
         recentOrders = await OrderService.GetRecentOrdersAsync(5);
     }
 
+    // Hilfsfunktionen für die Buttons
+    private void SetDate(int day)
+    {
+        newOrder.PickupDate = new DateTime(DateTime.Now.Year, 12, day);
+    }
+
+    private bool IsDateSelected(int day)
+    {
+        return newOrder.PickupDate.Day == day;
+    }
+
     private void EditOrder(Order order)
     {
         newOrder = new Order
@@ -172,7 +205,7 @@
             Vorname = order.Vorname,
             Ort = order.Ort,
             ChestNumber = order.ChestNumber,
-            Price = order.Price,
+            PickupDate = order.PickupDate,
             CreatedAt = order.CreatedAt,
             IsPickedUp = order.IsPickedUp
         };
@@ -182,7 +215,8 @@
     private void CancelEdit()
     {
         var lastOrt = newOrder.Ort;
-        newOrder = new Order { Ort = lastOrt };
+        var lastDate = newOrder.PickupDate;
+        newOrder = new Order { Ort = lastOrt, PickupDate = lastDate };
     }
 
     private async Task HandleSubmit()
@@ -193,7 +227,13 @@
         if (newOrder.Id == 0)
         {
             await OrderService.AddOrderAsync(newOrder);
-            lastAdded = new Order { Name = newOrder.Name, Ort = newOrder.Ort, ChestNumber = newOrder.ChestNumber };
+            lastAdded = new Order
+            {
+                Name = newOrder.Name,
+                Ort = newOrder.Ort,
+                ChestNumber = newOrder.ChestNumber,
+                PickupDate = newOrder.PickupDate
+            };
         }
         else
         {
@@ -201,8 +241,10 @@
             lastAdded = null;
         }
 
-        var currentOrt = newOrder.Ort;
-        newOrder = new Order { Ort = currentOrt };
+        // Ort & Datum behalten
+        var lastOrt = newOrder.Ort;
+        var lastDate = newOrder.PickupDate;
+        newOrder = new Order { Ort = lastOrt, PickupDate = lastDate };
 
         await LoadData();
     }

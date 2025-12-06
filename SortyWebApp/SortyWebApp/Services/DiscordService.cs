@@ -12,16 +12,16 @@ namespace SortyWebApp.Services
         public DiscordService(IConfiguration configuration)
         {
             _configuration = configuration;
-            // Lädt die Daten aus der appsettings.json
             _botToken = _configuration["Discord:Token"] ?? "";
             _channelId = _configuration["Discord:ChannelId"] ?? "";
         }
 
-        public async Task SendPickupNotificationAsync(string name, string vorname, int chestNumber, string location, double price)
+        // Signatur geändert: double price -> DateTime pickupDate
+        public async Task SendPickupNotificationAsync(string name, string vorname, int chestNumber, string location, DateTime pickupDate)
         {
             if (string.IsNullOrEmpty(_botToken) || string.IsNullOrEmpty(_channelId))
             {
-                Console.WriteLine("ABBRUCH: Discord Token oder ChannelID fehlen in der Config.");
+                // Silent fail oder Logging
                 return;
             }
 
@@ -31,26 +31,19 @@ namespace SortyWebApp.Services
             request.AddHeader("Authorization", $"Bot {_botToken}");
             request.AddHeader("Content-Type", "application/json");
 
-            string message = $"📦 **Neue Abholung** ({DateTime.Now:dd.MM.yyyy HH:mm})\n" +
+            // Nachricht angepasst: Datum statt Preis
+            string message = $"📦 **Abholung erfolgt** ({DateTime.Now:HH:mm})\n" +
                              $"👤 **Name:** {name}, {vorname}\n" +
+                             $"📅 **Termin:** {pickupDate:dd.MM.}\n" +
                              $"🏠 **Lager:** {location}\n" +
-                             $"🔢 **Kiste:** {chestNumber}\n" +
-                             $"💰 **Preis:** {price:C}";
+                             $"🔢 **Kiste:** {chestNumber}";
 
             var payload = new { content = message };
             request.AddJsonBody(payload);
 
             try
             {
-                var response = await client.ExecuteAsync(request);
-                if (response.IsSuccessful)
-                {
-                    Console.WriteLine("Discord Nachricht gesendet.");
-                }
-                else
-                {
-                    Console.WriteLine($"Discord Fehler: {response.StatusCode} - {response.Content}");
-                }
+                await client.ExecuteAsync(request);
             }
             catch (Exception ex)
             {

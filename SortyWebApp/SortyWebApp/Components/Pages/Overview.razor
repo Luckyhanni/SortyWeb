@@ -56,7 +56,7 @@
                         <th class="py-3 text-muted text-uppercase small fw-bold">Name</th>
                         <th class="py-3 text-muted text-uppercase small fw-bold">Lagerort</th>
                         <th class="py-3 text-center text-muted text-uppercase small fw-bold">Kiste</th>
-                        <th class="py-3 text-end text-muted text-uppercase small fw-bold">Preis</th>
+                        <th class="py-3 text-end text-muted text-uppercase small fw-bold">Datum</th>
                         <th class="py-3 text-end pe-4 text-muted text-uppercase small fw-bold">Aktion</th>
                     </tr>
                 </thead>
@@ -94,7 +94,7 @@
                                     <span class="fw-bold fs-5 text-dark">#@order.ChestNumber</span>
                                 </td>
                                 <td class="text-end fw-bold text-muted">
-                                    @order.Price.ToString("C")
+                                    @order.PickupDate.ToString("dd.MM.")
                                 </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-light btn-sm text-primary rounded-circle" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(order)">
@@ -167,8 +167,12 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-muted">Preis (€)</label>
-                            <InputNumber @bind-Value="editingOrder.Price" class="form-control" />
+                            <label class="form-label small fw-bold text-muted">Abhol-Tag</label>
+                            <InputSelect @bind-Value="editingOrder.PickupDate" class="form-select fw-bold">
+                                <option value="@(new DateTime(DateTime.Now.Year, 12, 22))">22. Dez (Sonntag)</option>
+                                <option value="@(new DateTime(DateTime.Now.Year, 12, 23))">23. Dez (Montag)</option>
+                                <option value="@(new DateTime(DateTime.Now.Year, 12, 24))">24. Dez (Dienstag)</option>
+                            </InputSelect>
                         </div>
 
                         <div class="d-flex gap-2">
@@ -188,7 +192,7 @@
 
     private string searchText = "";
     private string selectedWarehouse = "";
-    private bool showHistory = false; // Toggle für Archiv
+    private bool showHistory = false;
 
     private bool showModal = false;
     private Order editingOrder = new();
@@ -203,22 +207,17 @@
     {
         if (string.IsNullOrWhiteSpace(searchText))
         {
-            // Keine Suche: Einfach alle laden (je nach Toggle)
             var all = showHistory
-                ? await OrderService.GetRecentOrdersAsync(100) // Begrenzen wir auf 100 wenn keine Suche
+                ? await OrderService.GetRecentOrdersAsync(100)
                 : await OrderService.GetActiveOrdersAsync();
-
             displayedOrders = all;
         }
         else
         {
-            // Suche aktiv: Fuzzy Search nutzen
-            // Hier übergeben wir jetzt "showHistory" an den Service!
             var searchResults = await OrderService.SearchOrdersAsync(searchText, showHistory);
             displayedOrders = searchResults.Select(r => r.Order).ToList();
         }
 
-        // Lager Filter anwenden (Client-seitig ist hier okay für die Menge)
         if (!string.IsNullOrWhiteSpace(selectedWarehouse))
         {
             displayedOrders = displayedOrders.Where(o => o.Ort == selectedWarehouse).ToList();
@@ -234,7 +233,7 @@
             Vorname = order.Vorname,
             Ort = order.Ort,
             ChestNumber = order.ChestNumber,
-            Price = order.Price,
+            PickupDate = order.PickupDate, // Datum
             CreatedAt = order.CreatedAt,
             IsPickedUp = order.IsPickedUp,
             PickedUpAt = order.PickedUpAt
